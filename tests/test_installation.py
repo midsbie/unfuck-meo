@@ -70,7 +70,7 @@ class InstallationTest(unittest.TestCase):
         self.assertIn("\nMEO_DEVICES=\n", config.read_text(encoding="utf-8"))
         text = service.read_text(encoding="utf-8")
         self.assertIn('ExecStart="/opt/meo/bin/meo-ipv6-fix" $MEO_DEVICES', text)
-        self.assertIn('EnvironmentFile="/etc/meo/default/meo-ipv6-fix"', text)
+        self.assertIn("EnvironmentFile=/etc/meo/default/meo-ipv6-fix", text)
         self.assertNotIn(str(self.staging), text)
         self.assertTrue(timer.is_file())
         subprocess.run([str(command), "--help"], check=True, stdout=subprocess.DEVNULL)
@@ -157,7 +157,7 @@ class InstallationTest(unittest.TestCase):
                 self.assertIn(
                     f'ExecStart="{prefix}/bin/meo-ipv6-fix" $MEO_DEVICES', text
                 )
-                self.assertIn(f'EnvironmentFile="{config}"', text)
+                self.assertIn(f"EnvironmentFile={config}", text)
                 self.assertEqual("DynamicUser=yes" in text, uid == 0)
                 self.assertEqual("ProtectHome=yes" in text, uid == 0)
                 self.assertNotIn(str(self.staging), text)
@@ -167,6 +167,41 @@ class InstallationTest(unittest.TestCase):
                 self.assertFalse(command.exists())
                 self.assertFalse(service.exists())
                 self.assertTrue(configuration.is_file())
+
+    @unittest.skipUnless(shutil.which("systemd-analyze"), "requires systemd-analyze")
+    def test_installed_units_pass_systemd_verification(self):
+        # Install live under the staging root so ExecStart= names an existing command.
+        # Verify in system mode: --user needs $XDG_RUNTIME_DIR, often absent in CI.
+        for uid, unitdir in ((0, "usr/lib/systemd/system"), (1000, "etc/systemd/user")):
+            with self.subTest(uid=uid):
+                root = self.staging / str(uid)
+                result = self.make(
+                    "install",
+                    "DESTDIR=",
+                    f"prefix={root}/usr",
+                    f"sysconfdir={root}/etc",
+                    env=self.environment_for_uid(uid),
+                )
+                self.assertEqual(result.returncode, 0, result.stdout)
+                units = root / unitdir
+                result = subprocess.run(
+                    [
+                        "systemd-analyze",
+                        "verify",
+                        "--man=no",
+                        str(units / "meo-ipv6-fix.service"),
+                        str(units / "meo-ipv6-fix.timer"),
+                    ],
+                    text=True,
+                    encoding="utf-8",
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout)
+                # Other units on the host may draw warnings; ours must not.
+                lines = result.stdout.splitlines()
+                self.assertEqual([x for x in lines if "meo-ipv6-fix" in x], [])
 
     def test_activation_uses_matching_systemd_manager(self):
         systemctl = self.staging / "systemctl"

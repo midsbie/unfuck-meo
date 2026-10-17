@@ -4,7 +4,7 @@ Description=Switch MEO router sharing rules back to IPv6
 [Service]
 Type=oneshot
 Environment=PYTHONUNBUFFERED=1
-EnvironmentFile="@CONFIG@"
+EnvironmentFile=@CONFIG@
 ExecStart="@BINDIR@/meo-ipv6-fix" $MEO_DEVICES
 TimeoutStartSec=2min
 NoNewPrivileges=yes
