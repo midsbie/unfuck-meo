@@ -1,0 +1,3 @@
+include Makefile uv.lock
+recursive-include systemd *.service.in *.timer *.env
+recursive-include tests *.py *.html
