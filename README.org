@@ -93,7 +93,7 @@ sudo make enable
 
 - ~make install~ copies files only: no systemd contact, timer left inactive, existing configuration preserved.
 - ~MEO_DEVICES~ lists the devices to watch, by name or MAC address. ~MEO_URL~, ~MEO_USER~ and ~MEO_PASSWORD~ are optional.
-- New configuration files leave ~MEO_DEVICES~ empty; set at least one device before ~make enable~.  ~make install~ warns while it is empty (not when staging with ~DESTDIR~).  Empty or unset result in exit status 2 (missing ~DEVICE~ arguments).  Unknown device produces exit status 1.
+- New configuration files leave ~MEO_DEVICES~ empty; set at least one device before ~make enable~.
 - ~make enable~ reloads the scope's systemd manager and enables the timer: first run 2 min after boot, then every 5 min.
 
 Changes and problems are logged to the journal. User scope: add ~--user~ to both commands.
