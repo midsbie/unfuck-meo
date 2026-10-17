@@ -85,6 +85,32 @@ class InstallationTest(unittest.TestCase):
         self.assertFalse(timer.exists())
         self.assertEqual(config.read_text(encoding="utf-8"), "MEO_DEVICES=custom\n")
 
+    def test_live_install_warns_until_devices_are_set(self):
+        env = self.environment_for_uid(0)
+        variables = (
+            "DESTDIR=",
+            f"prefix={self.staging}/usr",
+            f"sysconfdir={self.staging}/etc",
+        )
+        config = self.staging / "etc/default/meo-ipv6-fix"
+        result = self.make("install", *variables, env=env)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn(f"warning: MEO_DEVICES is empty in {config}", result.stdout)
+        cases = (
+            ('MEO_DEVICES=""\n', True),
+            ("MEO_DEVICES=nas\nMEO_DEVICES=\n", True),
+            ("#MEO_DEVICES=nas\n", True),
+            ("MEO_DEVICES=nas\n", False),
+            ('MEO_DEVICES="nas laptop"\n', False),
+        )
+        for text, warns in cases:
+            with self.subTest(config=text):
+                config.write_text(text, encoding="utf-8")
+                result = self.make("install", *variables, env=env)
+                self.assertEqual(result.returncode, 0, result.stdout)
+                self.assertEqual("warning: MEO_DEVICES" in result.stdout, warns)
+                self.assertEqual(config.read_text(encoding="utf-8"), text)
+
     def test_defaults_follow_effective_user_and_respect_overrides(self):
         cases = (
             (0, None, None),
