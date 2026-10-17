@@ -413,8 +413,8 @@ def main(argv: list[str] | None = None) -> int:
     invalid arguments.
     """
     parser = argparse.ArgumentParser(
-        description="Switch the router's IPv4 Game & Application Sharing rules of the given "
-        "devices back to IPv6, printing a line per rule changed.",
+        description="Switch the router's IPv4 Game & Application Sharing rules of the "
+        "given devices back to IPv6, printing a line per rule changed.",
         epilog="The router password is read from the MEO_PASSWORD environment variable "
         "(default: meo).",
     )
