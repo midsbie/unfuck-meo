@@ -1,0 +1,9 @@
+[Unit]
+Description=Periodically switch MEO router sharing rules back to IPv6
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
