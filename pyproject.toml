@@ -3,9 +3,9 @@ requires = ["setuptools==84.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "meo-ipv6-fix"
+name = "unfuck-meo"
 version = "0.1.0"
-description = "Restore IPv6 sharing rules on MEO TG789vac v2 routers"
+description = "Workarounds for MEO's customer-hostile equipment"
 readme = { file = "README.org", content-type = "text/plain" }
 requires-python = ">=3.11"
 license = "MIT"

@@ -1,8 +1,22 @@
-#+title: meo-ipv6-fix
+#+title: unfuck-meo
+
+Workarounds for MEO's customer-hostile equipment, one command per problem:
+
+- ~meo-ipv6-fix~ :: IPv6 sharing rules reverting to IPv4 on the MediaAccess TG789vac v2 router.
+
+* Installation
+
+From this checkout, with [[https://docs.astral.sh/uv/][uv]]:
+
+#+begin_src sh
+uv tool install .
+#+end_src
+
+* meo-ipv6-fix
 
 Restores IPv6 *Game & Application Sharing* rules on a MEO (Technicolor) MediaAccess TG789vac v2 router.
 
-* Problem
+** Problem
 
 IPv6 sharing rules revert to IPv4 over time, breaking inbound access to a LAN device's services.  The sharing page hints at the cause:
 
@@ -12,7 +26,7 @@ If the device has no IPv6 it will assign the corresponding IPv4 for the game or 
 
 Probable mechanism: the firmware re-evaluates rules on some event (reboot, device entry expiry, ...), downgrades a rule if the device's IPv6 address is unknown at that moment, and never upgrades it back.
 
-* Usage
+** Usage
 
 ~meo-ipv6-fix DEVICE...~ logs in to the web UI and applies the manual fix to each IPv4 rule of each ~DEVICE~: /Edit/, set /IP Version/ to IPv6, /Apply/. The router recreates the rule as IPv6 under a new id.
 
@@ -46,14 +60,6 @@ Router access; options override the environment:
 | Password | =meo=                  | ~MEO_PASSWORD~ |          |
 
 Requires Python 3.11+; standard library only.
-
-* Installation
-
-From this checkout, with [[https://docs.astral.sh/uv/][uv]]:
-
-#+begin_src sh
-uv tool install .
-#+end_src
 
 ** Periodic execution with systemd
 
@@ -107,6 +113,23 @@ sudo systemctl daemon-reload
 
 Use *one scope* throughout installation, activation and removal.
 
+** Router protocol
+
+Web UI behaviour this tool relies on:
+
+- Login :: ~POST /login.lp~ with ~user~, the form's ~rn~, and ~hidepw~: an HTTP-digest-like hash of the password, computed from the ~realm~ and ~nonce~ embedded in the login page.
+- Rules :: form ~ServiceCfg~ on ~/cgi/b/games/cfg/?be=0&l0=3&l1=4~. Buttons post the form back to the same URL: field ~0~ is the action, ~1~ the key, ~2~ the page's one-time token.
+  - /Edit/: action 21, key = rule id.
+  - /Apply/ (edit form): action 10; field ~39~ = IP version (~4~ IPv4, ~41~ IPv6).
+- Device page :: linked from the rules table; shows the device's IPv6 address.
+
+** Backlog
+
+- Rule selection :: fix only some of a device's rules (e.g. /HTTPS Server/ but not /Deluge/); today all of them are fixed.  Per-device rule lists outgrow ~MEO_DEVICES~ and call for a configuration file.
+- Verbose mode :: ~-v~ for manual runs, summarising each device (e.g. =nas: 3 rules, all IPv6=); systemd runs stay silent.
+- Devices without rules :: an error today, which catches misspelt devices; could be a warning instead.
+- HTTP timeout :: fixed at 15 s; could be an option.
+
 * Development
 
 Requires Python 3.11+ and uv 0.11.7+.
@@ -123,23 +146,6 @@ make check
 | ~make lint~  | Ruff lint, PEP 257 docstring checks, formatting check             |
 | ~make fmt~   | Apply formatting                                                  |
 | ~make build~ | Wheel and source archive into =dist/=                             |
-
-* Router protocol
-
-Web UI behaviour this tool relies on:
-
-- Login :: ~POST /login.lp~ with ~user~, the form's ~rn~, and ~hidepw~: an HTTP-digest-like hash of the password, computed from the ~realm~ and ~nonce~ embedded in the login page.
-- Rules :: form ~ServiceCfg~ on ~/cgi/b/games/cfg/?be=0&l0=3&l1=4~. Buttons post the form back to the same URL: field ~0~ is the action, ~1~ the key, ~2~ the page's one-time token.
-  - /Edit/: action 21, key = rule id.
-  - /Apply/ (edit form): action 10; field ~39~ = IP version (~4~ IPv4, ~41~ IPv6).
-- Device page :: linked from the rules table; shows the device's IPv6 address.
-
-* Backlog
-
-- Rule selection :: fix only some of a device's rules (e.g. /HTTPS Server/ but not /Deluge/); today all of them are fixed.  Per-device rule lists outgrow ~MEO_DEVICES~ and call for a configuration file.
-- Verbose mode :: ~-v~ for manual runs, summarising each device (e.g. =nas: 3 rules, all IPv6=); systemd runs stay silent.
-- Devices without rules :: an error today, which catches misspelt devices; could be a warning instead.
-- HTTP timeout :: fixed at 15 s; could be an option.
 
 * License
 
