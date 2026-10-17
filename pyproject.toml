@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meo-ipv6-fix"
+version = "0.1.0"
+description = "Restore IPv6 sharing rules on MEO TG789vac v2 routers"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Miguel Guedes" }]
+dependencies = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+]
+
+[project.scripts]
+meo-ipv6-fix = "meo_ipv6_fix:main"
+
+[dependency-groups]
+dev = ["ruff==0.17.1"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+py-modules = ["meo_ipv6_fix"]
+
+[tool.ruff]
+target-version = "py311"
+required-version = "==0.17.1"
+
+[tool.ruff.lint]
+extend-select = ["I", "E", "W", "F", "B", "C90", "N", "UP", "SIM", "D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
