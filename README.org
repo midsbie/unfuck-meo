@@ -134,6 +134,13 @@ Web UI behaviour this tool relies on:
   - /Apply/ (edit form): action 10; field ~39~ = IP version (~4~ IPv4, ~41~ IPv6).
 - Device page :: linked from the rules table; shows the device's IPv6 address.
 
+* Backlog
+
+- Rule selection :: fix only some of a device's rules (e.g. /HTTPS Server/ but not /Deluge/); today all of them are fixed.  Per-device rule lists outgrow ~MEO_DEVICES~ and call for a configuration file.
+- Verbose mode :: ~-v~ for manual runs, summarising each device (e.g. =nas: 3 rules, all IPv6=); systemd runs stay silent.
+- Devices without rules :: an error today, which catches misspelt devices; could be a warning instead.
+- HTTP timeout :: fixed at 15 s; could be an option.
+
 * License
 
 MIT; see [[file:LICENSE][LICENSE]].
