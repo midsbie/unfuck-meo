@@ -1,0 +1,562 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <title>MediaAccess Gateway - Game &amp; Application Sharing - 10.5.8.I[BQ]</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+  <script type="text/javascript">var g_navitem = -1;</script>
+  <script type="text/javascript"> var g_focus = -1;</script>
+  <script type='text/javascript' src='/util.js'></script>
+  <script type="text/javascript">var g_dir = getLanguageDirection("en");</script>
+  <link rel="stylesheet" type="text/css" href="/styles.css">
+  <!-- Fix for CPE_P00112452 -->
+  <script>
+    function setCookie(name,value,days)
+    {
+        if (days)
+        {
+            var date = new Date();
+            date.setTime(date.getTime()+(days*24*60*60*1000));
+            var expires = "; expires="+date.toGMTString();
+        }
+        else
+            var expires = "";
+
+        document.cookie = name+"="+value+expires+"; path=/";
+    }
+
+    function getCookie(c_name)
+    {
+        var i,x,y,ARRcookies=document.cookie.split(";");
+        for (i=0;i<ARRcookies.length;i++)
+        {
+            x=ARRcookies[i].substr(0,ARRcookies[i].indexOf("="));
+            y=ARRcookies[i].substr(ARRcookies[i].indexOf("=")+1);
+            x=x.replace(/^\s+|\s+$/g,"");
+            if (x==c_name)
+            {
+                return unescape(y);
+            }
+        }
+    }   
+
+    function eraseCookie(name)
+    {  
+        setCookie(name,"",-1);
+    }
+
+    function reload()
+    {
+        var useragent = navigator.userAgent;
+        var url = document.URL;
+        var isFirefox = useragent.search("Firefox");
+        var isTelephonyPage = url.search("cgi/b/_voip_/ov");
+        if ( isFirefox > 0 && isTelephonyPage > 0 )
+        {
+            var cookie = getCookie("test");
+            if (cookie == null)
+            {
+                document.getElementById("reload").innerHTML="Loading data... Please Wait...";
+                setCookie("test","test",1);
+                location.reload(true);
+            }
+            else
+            {
+                eraseCookie("test");
+            }
+        }
+    }
+  </script> 
+  <!-- Fix for CPE_P00112452 -->
+</head>
+<body onLoad="reload();setFocus();" height="100%" style="margin:0px;">
+  <noscript>
+    <h1>Technicolor - MediaAccess Gateway</h1>
+    <h4>To view the Web interface of your device, JavaScript must be supported and enabled on your browser! <br><br>Please enable scripting and refresh your browser.</h4>
+  </noscript>
+  <table cellspacing="0" cellpadding="0" border="0" class="main" height="100%" width="960">
+    <tr>
+      <td colspan="2">
+        <table cellspacing="0" cellpadding="0" class="banner" width="100%">
+          <tr>
+          	<td>		
+              <table class="nopadtable">
+                <tr><td id="productName" class="product js_right">
+		          	<script type="text/javascript">
+		                var headerText = 'MediaAccess TG789vac v2';
+		                document.write(headerText.replace(" ","&nbsp;"));
+		            </script>
+				</td></tr>
+                <tr><td class="displaySettings js_right" id="displaySettings">
+					<script type="text/javascript">
+							writeDisplaySettings();
+					</script>
+					<span class="langSelect" id="langSelect">
+						<script type="text/javascript">
+							document.write('|&nbsp;'+'Language'+':');
+						</script><form name="langSelect" action="/cgi/language.cgi" method=post><span class="langSelect"><input type="hidden" name=30 value="en"><input type="hidden" name='2' value='758686748'>
+<strong>en</strong>&nbsp;
+<a href="" onClick="setLanguage('pt');submitForm(document.langSelect,0);return false;" title="Português">pt</a>&nbsp;</span></form>
+					</span>
+						<span> | </span>						
+						<span class="langSelect" id="langSelect">
+							<a href="javascript:GoAndRemember('/logout.lp','')"><script type="text/javascript">
+							document.write(' Logout');
+						</script></a>
+						</span>
+				</td></tr>
+				<script type="text/javascript">					
+                    if (0==1) {
+                      var start;
+                      var urlstr = "://";
+                      if ((start=location.href.indexOf(urlstr)) != -1) {
+                        var url = new String(location.href.substr(start+urlstr.length));
+                        GoAndRemember("/aws.lp", "url="+url);
+                      }
+                    }
+                </script>
+				<script type="text/javascript">
+					if (document.getElementById('langSelect').innerHTML.search("setLanguage")==-1)
+						document.getElementById('langSelect').style.visibility = "hidden";
+	            </script>	
+              </table>
+            </td>
+            <td class="logo js_left">
+                <script type="text/javascript">
+                   var logoRedirect = ''
+                   if (logoRedirect && logoRedirect.replace(/^\s+|\s+$/g, "").length )
+                      document.write('<a href = '+logoRedirect+' > <img src="/images/logo.gif"/></a>');
+                   else
+                      document.write('<img src="/images/logo.gif"/>');
+                </script>
+            </td> 
+			</tr><tr>
+            <td colspan="2"><script type="text/javascript">pm_write_messages();</script>
+</td>           
+          </tr> 
+        </table>
+      </td>
+    </tr>
+    <tr>	
+      <td class="Menu">
+        <script type="text/javascript">writeMenu();</script>&nbsp;
+      </td>
+      <td class="page" style="width:760px">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <script type="text/javascript">writeNavBar();</script>
+          <tr>
+            <td>
+              <table cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td>
+
+
+<div class='contentcontainer'>
+<form name='ServiceCfg' action='/cgi/b/games/cfg/' method='post'>
+<input type='hidden' name='0' value=''>
+<input type='hidden' name='1' value=''>
+<input type='hidden' name='2' value='3327509862'>
+<hr>
+<div class='contentitem js_right'>
+<table cellspacing='0' cellpadding='0'>
+<tr><td class='icon' valign='top' width='100px'><img src='/images/dev___xl.gif' alt='Game &amp; Application Sharing'></td>
+<td class='data' valign='top'><table cellspacing='0' cellpadding='0'><tr><td align='left' class='js_right'><span class='itemtitle'>Game &amp; Application Sharing</span></td><td align='right' class='js_left'></td></tr>
+<tr><td colspan='2'><p>This page summarizes the games and applications defined on your MediaAccess Gateway. Each game or application can be assigned to a device on your local network.</p>
+<br><table cellspacing='0' cellpadding='0' width='100%'><tr><td width='40' valign='top'><img src='/images/bull__md.gif' alt=''></td><td valign='top'>
+<span class='blocktitle'>Universal Plug and Play</span><br>
+<p>Universal Plug and Play (UPnP) is a technology that enables seamless operation of a wide range of games and messaging applications.</p>
+<table width='100%' class='datatable' cellspacing='0' cellpadding='0'>
+<tr><td></td><td width='30px'></td><td width='220px'></td><td width='50px'></td></tr>
+<tr><td height='7' colspan='4'><img src='/images/spacer.gif' width='1' height='7' border='0' alt=''></td></tr>
+<tr><td width='170'>Use UPnP:</td><td colspan='3'><input type='checkbox' name='34' value='1' checked  >
+</td></tr>
+<tr><td height='7' colspan='4'><img src='/images/spacer.gif' width='1' height='7' border='0' alt=''></td></tr>
+<tr><td width='170'>Use Extended Security:</td><td colspan='3'><input type='checkbox' name='35' value='1' checked  >
+</td></tr>
+<tr><td height='7' colspan='4'><img src='/images/spacer.gif' width='1' height='7' border='0' alt=''></td></tr>
+<tr><td colspan='4' align='right' class='js_left'>
+<input type='button' name='26' value='Apply' onClick='submitForm(document.ServiceCfg,26,0,"","",0,"")' >
+<input type='button' name='27' value='Cancel' onClick='submitForm(document.ServiceCfg,27,0,"","",0,"")' >
+</td></tr>
+</table>
+</td></tr></table>
+<br><table cellspacing='0' cellpadding='0' width='100%'><tr><td width='40' valign='top'><img src='/images/bull__md.gif' alt=''></td><td valign='top'>
+<span class='blocktitle'>Assigned Games &amp; Applications</span><br>
+<p>Click on 'Unassign' to disable a game or a application or use the last row in the table to assign a game or application to a local network device.</p>
+<p>If the game or the application you are looking for does not exist, choose 'User-defined' in the service list to create and assign it quickly or <a href="javascript:execTask('CREATE_GAME')">click here</a> to create it with more port mappings (you will be asked for game or application details).</p>
+<p>Choose 'User-defined' in the device list and enter its IP address if the device you are looking for does not appear in the device list.</p>
+<p>If the device has no IPv6 it will assign the corresponding IPv4 for the game or application.</p>
+<div style='overflow-x:auto;overflow-y:hidden;width:590px;height:auto;'>
+<div style='width:auto;height:auto;'>
+<table class='edittable'  width='auto' cellspacing='0' cellpadding='0' border='0'>
+<tr><td colspan='12' class='black'><img src='/images/spacer.gif' border='0' width='1' height='1' alt=''><br></td></tr>
+<tr><td colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><th align='left' class='js_right'>Game or Application</th><th align='left' class='js_right'>Device</th><th align='left' class='js_right'>Log</th><th align='left' class='js_right'>Cone</th><th align='left' class='js_right'>IP Version</th><th align='left' class='js_right'>Protocol</th><th align='left' class='js_right'>Port Range</th><th align='left' class='js_right'>Translate To ...</th><th align='left' class='js_right'>Trigger Protocol</th><th align='left' class='js_right'>Trigger Port</th><th colspan='2'></th></tr>
+<tr><td colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td colspan='12' class='black'><img src='/images/spacer.gif' border='0' width='1' height='1' alt=''><br></td></tr>
+<tr><td  width='10%' class='oddrow' colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td width='10%' class='oddrow'><a href="javascript:GoAndRemember('/cgi/b/games/_servconf_/ov/','nav=nc&name=Deluge' ,true)">Deluge</a></td><td class='oddrow js_right' align='left'><a href="javascript:GoAndRemember('/cgi/b/_dev_/ov/','key=02:00:00:00:00:01&name=nas' )">nas</a></td><td class='oddrow js_right' align='left'>Off</td><td class='oddrow js_right' align='left'>Off</td><td class='oddrow js_right' align='left'>IPv6</td><td class='oddrow js_right' align='left'>TCP</td><td class='oddrow js_right' align='left'>59601 - 59601</td><td class='oddrow js_right' align='left'>-</td><td class='oddrow js_right' align='left'>-</td><td class='oddrow js_right' align='left' colspan='3'>-</td></tr>
+<tr><td class='oddrow' colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td class='evenrow' colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td class='evenrow'><input type='text' name='37' maxlength='39' onkeypress='return noenter(event)'  style='width: auto' value='Deluge'>
+</td><td class='evenrow'><select name='31' style='width: auto' onChange='submitForm(document.ServiceCfg,31,0, "64")'>
+<option value='192.168.1.68' >laptop</option>
+<option value='192.168.1.64' >Unknown-02-00-00-00-00-02</option>
+<option value='192.168.1.65' >access-point</option>
+<option value='192.168.1.66' >phone-1</option>
+<option value='192.168.1.67' >tablet</option>
+<option value='192.168.1.69' >printer</option>
+<option value='192.168.1.70'  selected>nas</option>
+<option value='192.168.1.71' >tv</option>
+<option value='192.168.1.72' >phone-2</option>
+<option value='192.168.1.73' >vacuum</option>
+<option value='UDV' >&lt;User-defined...&gt;</option>
+</select>
+</td><td class='evenrow'><input type='checkbox' name='33' value='1'   >
+</td><td class='evenrow'><input type='checkbox' name='46' value='1'   >
+</td><td class='evenrow'><select name='39' style='width: 100%'>
+<option value='4' selected>IPv4</option>
+<option value='41' >IPv6</option>
+</select>
+</td><td class='evenrow'><select name='38' style='width: 100%'>
+<option value='0' >Any</option>
+<option value='6' >TCP</option>
+<option value='17' selected>UDP</option>
+</select>
+</td><td class='evenrow'><input type='text' name='44' maxlength='5' onkeypress='return noenter(event)'  size='5' value='59601'>
+ to <input type='text' name='45' maxlength='5' onkeypress='return noenter(event)'  size='5' value='59601'>
+  </td><td class='evenrow'><input type='text' name='41' maxlength='5' onkeypress='return noenter(event)'  style='width: auto' value='59601'>
+</td><td class='evenrow'><select name='42' style='width: 100%'>
+<option value='0' selected>Any</option>
+<option value='6' >TCP</option>
+<option value='17' >UDP</option>
+</select>
+</td><td class='evenrow'><input type='text' name='43' maxlength='5' onkeypress='return noenter(event)'  style='width: auto'>
+</td><td class='evenrow' align='center' valign='middle'><input type="button" value="Apply" onclick="javascript:submitForm(document.ServiceCfg,10,1,'64','',0,'');"></input></td><td class='evenrow' align='center' valign='middle'><input type="button" value="Cancel" onclick="javascript:submitForm(document.ServiceCfg,11,0,'64','',0,'');"></input></td></tr>
+<tr><td class='evenrow' colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td  width='10%' class='oddrow' colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td width='10%' class='oddrow'><a href="javascript:GoAndRemember('/cgi/b/games/_servconf_/ov/','nav=nc&name=FTP%2520Server' ,true)">FTP Server</a></td><td class='oddrow js_right' align='left'>192.168.1.253</td><td class='oddrow js_right' align='left'>Off</td><td class='oddrow js_right' align='left'>On</td><td class='oddrow js_right' align='left'>IPv4</td><td class='oddrow js_right' align='left'>TCP</td><td class='oddrow js_right' align='left'>21 - 21</td><td class='oddrow js_right' align='left'>21 - 21</td><td class='oddrow js_right' align='left'>-</td><td class='oddrow js_right' align='left' colspan='3'>-</td></tr>
+<tr><td class='oddrow' colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td  width='10%' class='evenrow' colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td width='10%' class='evenrow'><a href="javascript:GoAndRemember('/cgi/b/games/_servconf_/ov/','nav=nc&name=FTP%2520Server' ,true)">FTP Server</a></td><td class='evenrow js_right' align='left'>192.168.1.253</td><td class='evenrow js_right' align='left'>Off</td><td class='evenrow js_right' align='left'>Off</td><td class='evenrow js_right' align='left'>IPv4</td><td class='evenrow js_right' align='left'>TCP</td><td class='evenrow js_right' align='left'>21800 - 21805</td><td class='evenrow js_right' align='left'>21800 - 21805</td><td class='evenrow js_right' align='left'>-</td><td class='evenrow js_right' align='left' colspan='3'>-</td></tr>
+<tr><td class='evenrow' colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td  width='10%' class='oddrow' colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td width='10%' class='oddrow'><a href="javascript:GoAndRemember('/cgi/b/games/_servconf_/ov/','nav=nc&name=HTTPS%2520Server' ,true)">HTTPS Server</a></td><td class='oddrow js_right' align='left'><a href="javascript:GoAndRemember('/cgi/b/_dev_/ov/','key=02:00:00:00:00:01&name=nas' )">nas</a></td><td class='oddrow js_right' align='left'>Off</td><td class='oddrow js_right' align='left'>Off</td><td class='oddrow js_right' align='left'>IPv6</td><td class='oddrow js_right' align='left'>TCP</td><td class='oddrow js_right' align='left'>443 - 443</td><td class='oddrow js_right' align='left'>-</td><td class='oddrow js_right' align='left'>-</td><td class='oddrow js_right' align='left' colspan='3'>-</td></tr>
+<tr><td class='oddrow' colspan='12'><img src='/images/spacer.gif' border='0' width='1' height='3' alt=''><br></td></tr>
+<tr><td colspan='11' class='black'><img src='/images/spacer.gif' border='0' width='1' height='1' alt=''><br></td></tr>
+</table>
+</div>
+</div>
+<script type='text/javascript'>
+new fv({form:'document.ServiceCfg', name:'32', text:'User-defined', opt:'1',ip:'!0!FF',req:'1'});
+new fv({form:'document.ServiceCfg', name:'36', text:'User-defined', opt:'1',req:'1'});
+new fv({form:'document.ServiceCfg', name:'44', text:'start port', opt:'1',req:'1',num:'1',gte:'1',lte:'65535', msg:'valid port numbers are 1-65535'});
+new fv({form:'document.ServiceCfg', name:'45', text:'end port', opt:'1',num:'1',gte:'1',lte:'65535', msg:'valid port numbers are 1-65535'});
+new fv({form:'document.ServiceCfg', name:'45', text:'end port', opt:'1',numexpr:'n>=n1',n1:'44', msg:'end port has to be greater than start port'});
+new fv({form:'document.ServiceCfg', name:'41', text:'base port', opt:'1',num:'1',gte:'1',lte:'65535', msg:'valid port numbers are 1-65535'});
+new fv({form:'document.ServiceCfg', name:'41', text:'base port', opt:'1',numexpr:'n2?n<65535-(n2-n1):n<65535;',n1:'44',n2:'45', msg:'base port too high for port range'});
+new fv({form:'document.ServiceCfg', name:'43', text:'trigger port', opt:'1',num:'1',gte:'1',lte:'65535', msg:'valid port numbers are 1-65535'});
+</script>
+</td></tr></table>
+</td></tr></table></td></tr></table></div>
+</form>
+<script type='text/javascript'>generateTasks()</script>
+</div>
+<script type='text/javascript'>
+if (g_dir == "rtl")
+  js_dir_rtl();
+</script>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+		&nbsp;
+		<!-- V1 12ABR16-->
+		<!-- V2 -->
+		<!-- V3 -->
+		<!-- V4 -->
+		<!-- V5 -->
+		<!-- V6 -->
+      </td>
+    </tr>
+  </table>
+</body>
+
+<script type='text/javascript'>
+
+function cgiReplacer() {
+    if(window.location.pathname=="/cgi/b/_wli_/cfg/" || window.location.pathname=="/cgi/b/_wli_/ov/" || window.location.pathname=="/cgi/b/_wli_/dt/" || window.location.pathname=="/cgi/b/_dev_/ov/" || window.location.pathname=="/cgi/b/csharing/ov/" || window.location.pathname=="/cgi/b/csharing/cfg/"){
+        try{			
+            var elements = document.getElementsByTagName("td");
+			for(var g = 0; g<elements.length; g++){
+				if(elements[g].innerHTML == "Permitir multicast a partir do exterior:"){
+					elements[g].innerHTML = "";
+			    	elements[g+1].style.display = "none";
+			    	elements[g-1].style.display = "none";
+					}
+				if(elements[g].innerHTML == "Regi�o:"  || elements[g].innerHTML == "Região:"){
+					elements[g+1].innerHTML = "Europa";
+					}
+				if(elements[g].innerHTML == "WLAN activa:" || elements[g].innerHTML == "Wi-Fi ativo:"){
+					elements[g].innerHTML = "";
+			    	elements[g+1].style.display = "none";
+			    	elements[g-1].style.display = "none";
+					}
+				if(elements[g].innerHTML == "Allow multicast from Broadband Network:"){
+					elements[g].innerHTML = "";
+			    	elements[g+1].style.display = "none";
+			    	elements[g-1].style.display = "none";
+					}
+				if(elements[g].innerHTML == "WLAN Enable:"){
+					elements[g].innerHTML = "";
+			    	elements[g+1].style.display = "none";
+			    	elements[g-1].style.display = "none";
+					}
+				if(elements[g].innerHTML == "Tipo:"){
+					elements[g+1].innerHTML = "Dispositivo genérico";
+					}
+				if(elements[g].innerHTML == "Endereço do servidor:" || elements[g].innerHTML == "Endere�o do servidor:"){
+					elements[g+1].innerHTML = "Não existe nenhum endereço IP da WAN";
+					}
+				if(elements[g].innerHTML == "Servidor ativo:" && window.location.pathname=="/cgi/b/csharing/cfg/"){	
+					var elements2= document.getElementsByTagName("td");
+					for(var j = 0; j<elements2.length; j++){
+						if(elements2[j].innerHTML == "Access From:"){
+							elements2[j].innerHTML = "Aceder a partir de:";
+						}
+					}
+				}
+				if(elements[g].innerHTML == "Servidor ativo:" && window.location.pathname=="/cgi/b/csharing/ov/"){	
+					var elements2= document.getElementsByTagName("td");
+					for(var j = 0; j<elements2.length; j++){
+						if(elements2[j].innerHTML == "Access From:"){
+							elements2[j].innerHTML = "Aceder a partir de:";
+							if(elements2[j+1].innerHTML == "any")
+								elements2[j+1].innerHTML = "LAN e WAN"
+						}
+					}
+				}
+			}
+		
+        }catch(err){
+        }
+    }else if(window.location.pathname=="/cgi/b/is/" || window.location.pathname=="/cgi/b/bb/"  ){
+       	try{
+			var elems = document.getElementsByTagName("td");
+			for(var i = 0; i<elems.length; i++){
+				if(elems[i].innerHTML == "IPv6 Address:" || elems[i].innerHTML == "Endere�o IPv6:" || elems[i].innerHTML == "Endereço IPv6:"){
+					elems[i].style.display = "none";
+					elems[i+1].style.display = "none";
+					elems[i].parentNode.style.display = "none";
+					elems[i+1].parentNode.style.display = "none";
+					}	
+				}
+		}catch(err){
+		}
+	   try{
+			document.body.innerHTML = document.body.innerHTML.replace("Endere�o IPv6:", "");
+        }catch(err){
+        }
+		try{
+			document.body.innerHTML = document.body.innerHTML.replace("IPv6 Address:", "");
+		}catch(err){
+		}
+    } else if(window.location.pathname=="/cgi/b/games/ov/" || window.location.pathname=="/cgi/b/games/cfg/"){
+		try{
+			 var elements = document.getElementsByTagName("td");
+				for(var g = 0; g<elements.length; g++){
+					if(elements[g].innerHTML == "Ligado"){
+						elements[g].innerHTML = "Sim";
+					}
+					if(elements[g].innerHTML == "Desligado"){
+						elements[g].innerHTML = "Não";
+					}
+				}
+		}catch(err){
+		}
+	}
+
+			
+	
+var url = window.location.toString();
+
+//remove the dropdownlist from pinging page
+ if(url.indexOf("/cgi/b/pinging/") > -1){
+	var elements = document.getElementsByTagName("td");
+	
+	for(var g = 0; g<elements.length; g++){
+		if(elements[g].innerHTML == "Connection:" || elements[g].innerHTML == "Conex�o:" || elements[g].innerHTML == "Conexão:"){
+			elements[g].innerHTML = "";
+			elements[g+1].style.display = "none";
+			elements[g-1].style.display = "none";
+		}
+	}
+}
+	
+	//remove the dropdownlist from check connection page
+	if(url.indexOf("/cgi/b/connchk/") > -1){
+		var elements = document.getElementsByTagName("td");
+	
+		for(var g = 0; g<elements.length; g++){
+			if(elements[g].innerHTML == "Internet Service to Check:" || elements[g].innerHTML == "Servi�o de Internet a verificar:" || elements[g].innerHTML == "Serviço de Internet a verificar:"){
+				elements[g].innerHTML = "";
+				elements[g+1].style.display = "none";
+				elements[g-1].style.display = "none";
+			}
+		}
+	}
+
+
+
+
+
+//redirect "configure" link to alt_network_advanced.lp (2.4 GHz)
+if(url.indexOf('GuestWLAN:') > -1) {		
+var elems = document.getElementsByTagName("a");
+			
+for(var i = 0; i<elems.length; i++){
+    if(elems[i].href.indexOf('/cgi/b/_wli_/cfg/') > -1){
+       elems[i].href = "/alt_network_advanced.lp?be=0&l0=5&l1=-1";
+    }
+}
+}
+
+
+//Remove tasks from wireless interfaces  
+if(url.indexOf('cgi/b/_wli_/ov') > -1 || url.indexOf('cgi/b/_wli_/dt') > -1 || url.indexOf('cgi/b/_wli_/cfg') > -1){
+
+
+
+	//hide wps.lp task in the guest pages
+	if(url.indexOf('GuestWLAN:')>-1 || url.indexOf('GuestWLAN_5G:')>-1){
+
+		var elems_tr = document.getElementsByTagName("tr");
+
+		for (var i = 0; i<elems_tr.length; i++){
+			if(elems_tr[i].innerHTML.indexOf("/wps.lp") > -1){
+				elems_tr[elems_tr.length-5].innerHTML = ""
+			}
+		}
+	}
+	
+	//hide PIN config task in guest wlan page
+	if(url.indexOf('GuestWLAN')>-1){
+
+		var elems_tr4 = document.getElementsByTagName("tr");
+
+		for (var i = 0; i<elems_tr4.length; i++){
+			if(elems_tr4[i].innerHTML.indexOf("/PINconfig.lp") > -1){
+				elems_tr4[elems_tr4.length-4].innerHTML = ""
+			}
+		}
+	}
+
+
+	//hide WIFI_Analyzer_5G.lp task in the wlan 2.4 GHz interface page
+	if(url.indexOf('WLAN:')>-1 || url.indexOf('GuestWLAN:')>-1){
+
+		var elems_tr2 = document.getElementsByTagName("tr");
+
+		for (var i = 0; i<elems_tr2.length; i++){
+			if(elems_tr2[i].innerHTML.indexOf("/WIFI_Analyzer_5G.lp") > -1){
+				elems_tr2[elems_tr2.length-1].innerHTML = ""
+			}
+		}
+	}
+	
+	//hide WIFI_Analyzer.lp task in the wlan 5 GHz interface page
+	if(url.indexOf('WLAN_5G:')>-1 || url.indexOf('GuestWLAN_5G:')>-1){
+
+		var elems_tr3 = document.getElementsByTagName("tr");
+
+		for (var i = 0; i<elems_tr3.length; i++){
+			if(elems_tr3[i].innerHTML.indexOf("/WIFI_Analyzer.lp") > -1){
+				elems_tr3[elems_tr3.length-2].innerHTML = ""
+			}
+		}
+	}
+}
+
+
+if(url.indexOf('192.168.1.254')>-1 || url.indexOf('192.168.1.1')>-1 || url.indexOf('cgi/b/is')>-1 || url.indexOf('cgi/b/bb')>-1){
+
+var elems = document.getElementsByTagName("a");
+
+for(var i = 0; i<elems.length; i++){
+    if(elems[i].href.indexOf('/cgi/b/is/_ethwan_/ov/') > -1){
+        elems[i].href = elems[i].href.replace("/cgi/b/is/_ethwan_/ov/", "/eth_ov.lp");
+    }
+	if(elems[i].href.indexOf('/cgi/b/is/_ethoa_/ov/') > -1){
+        elems[i].href = elems[i].href.replace("/cgi/b/is/_ethoa_/ov/", "/eth_ov.lp");
+    }
+}	
+}
+
+if(url.indexOf('/cgi/b/toolbox/') > -1) {		
+var elems = document.getElementsByTagName("a");
+			
+for(var i = 0; i<elems.length; i++){
+    if(elems[i].href.indexOf('/teleList.lp') > -1){
+        elems[i].href = elems[i].href.replace("/teleList.lp", "/cgi/b/_voip_/ov/");
+    }
+if(elems[i].href.indexOf('/cgi/b/sfltr/ov/') > -1){
+        elems[i].href = elems[i].href.replace("/cgi/b/sfltr/ov/", "/urlFilter_admin.lp");
+    }
+}
+}
+
+
+var elems_eth = document.getElementsByTagName("a");
+
+
+//Wireless link redirect
+for(var h = 0; h<elems_eth.length; h++){
+
+	if(elems_eth[h].innerHTML == "Wireless"){
+		var elems = document.getElementsByTagName("a");
+			
+		for(var i = 0; i<elems.length; i++){
+			if(elems[i].href.indexOf('/cgi/b/intfs/') > -1){
+			elems[i].href = "/cgi/b/lan/?be=0&l0=4&l1=-1";
+			}	
+		}
+	}
+}
+
+
+
+
+var qurl = window.location.toString();	
+
+	if(qurl.indexOf('/eth_ov.lp') > -1) {	
+		var qnameplace = window.location.search;
+		var qplace = qnameplace.substring(0,16);
+		var qname = qnameplace.substring(16);
+		document.forms["langSelect"].action = "eth_ov.lp" + qplace + qname + "&";
+		//document.getElementsByName("langSelect")[0].action = "eth_ov.lp" + qplace + qname + "&";
+}
+
+
+
+	if(qurl.indexOf('/eth_dt.lp') > -1) {	
+		var qnameplace = window.location.search;
+		var qplace = qnameplace.substring(0,16);
+		var qname = qnameplace.substring(16);
+		document.forms["langSelect"].action = "eth_dt.lp" + qplace + qname + "&";
+		//document.getElementsByName("langSelect")[0].action = "eth_dt.lp" + qplace + qname + "&";
+}
+
+var url_login = window.location.toString();	
+if (url_login.indexOf('login.lp') == -1){
+  window.setTimeout(function () {window.location.href = "/logout.lp";  alert('You have been logged out due to inactivity!');}, 600000)
+}   
+
+}
+
+window.onload = cgiReplacer;
+
+</script>
+
+</html>
