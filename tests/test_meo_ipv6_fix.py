@@ -20,7 +20,8 @@ from unittest import mock
 import meo_ipv6_fix as m
 
 CAPTURES = pathlib.Path(__file__).parent / "captures"
-NAS_ARGS = "key=02:00:00:00:00:01&name=nas"
+NAS_MAC = "02:00:00:00:00:01"
+NAS_ARGS = f"key={NAS_MAC}&name=nas"
 NAS_IPV6 = ipaddress.IPv6Address("2001:8a0:0:1:0:ff:fe00:1")
 
 
@@ -92,6 +93,9 @@ class ParsingTest(unittest.TestCase):
         self.assertEqual(
             [r.device_args for r in rules],
             [NAS_ARGS, NAS_ARGS, None, None, NAS_ARGS],
+        )
+        self.assertEqual(
+            [r.mac for r in rules], [NAS_MAC, NAS_MAC, None, None, NAS_MAC]
         )
 
     def test_form_fields_are_those_a_browser_submits(self):
@@ -191,6 +195,39 @@ class RestoreIpv6Test(unittest.TestCase):
             [(p["0"], p["1"], p.get("39")) for p in session.posts],
             [(m.ACT_EDIT, "64", "4"), (m.ACT_APPLY, "64", m.IPV6)],
         )
+
+    def test_switches_rule_of_device_given_by_mac(self):
+        session = FakeSession(
+            [capture("cfg_one_ipv4.html"), capture("cfg_all_ipv6.html")],
+            capture("edit_one_ipv4.html"),
+            capture("device_nas.html"),
+        )
+        self.assertEqual(
+            run(session, device=NAS_MAC),
+            (1, f"{NAS_MAC}: Deluge (UDP 59601 - 59601): IPv4 -> IPv6\n"),
+        )
+        self.assertEqual(
+            [(p["0"], p["1"], p.get("39")) for p in session.posts],
+            [(m.ACT_EDIT, "64", "4"), (m.ACT_APPLY, "64", m.IPV6)],
+        )
+
+    def test_mac_is_case_insensitive(self):
+        session = FakeSession(
+            [capture("cfg_all_ipv4.html")], device_page=capture("device_nas.html")
+        )
+        count, _ = run(session, device=NAS_MAC.upper(), dry_run=True)
+        self.assertEqual(count, 3)
+
+    def test_hyphenated_mac_is_a_name(self):
+        with self.assertRaisesRegex(m.RouterError, "no sharing rules"):
+            run(
+                FakeSession([capture("cfg_all_ipv6.html")]),
+                device=NAS_MAC.replace(":", "-"),
+            )
+
+    def test_unknown_mac_is_an_error(self):
+        with self.assertRaisesRegex(m.RouterError, "no sharing rules"):
+            run(FakeSession([capture("cfg_all_ipv6.html")]), device="02:00:00:00:00:02")
 
     def test_dry_run_changes_nothing(self):
         session = FakeSession(

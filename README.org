@@ -14,7 +14,12 @@ Probable mechanism: the firmware re-evaluates rules on some event (reboot, devic
 
 * Usage
 
-~meo-ipv6-fix DEVICE...~ logs in to the web UI and applies the manual fix to each IPv4 rule of each ~DEVICE~ (a device name as the router lists it): /Edit/, set /IP Version/ to IPv6, /Apply/. The router recreates the rule as IPv6 under a new id.
+~meo-ipv6-fix DEVICE...~ logs in to the web UI and applies the manual fix to each IPv4 rule of each ~DEVICE~: /Edit/, set /IP Version/ to IPv6, /Apply/. The router recreates the rule as IPv6 under a new id.
+
+A ~DEVICE~ is either:
+
+- Name :: as the router lists it, e.g. =nas=.
+- MAC address :: colon-separated, any case, e.g. =02:00:00:00:00:01=; unaffected by the router renaming the device.  Hyphenated MAC addresses are valid hostnames, so they are taken as names.
 
 Behaviour:
 
@@ -81,7 +86,7 @@ sudo make enable
 #+end_src
 
 - ~make install~ copies files only: no systemd contact, timer left inactive, existing configuration preserved.
-- ~MEO_DEVICES~ lists the device names to watch. ~MEO_URL~, ~MEO_USER~ and ~MEO_PASSWORD~ are optional.
+- ~MEO_DEVICES~ lists the devices to watch, by name or MAC address. ~MEO_URL~, ~MEO_USER~ and ~MEO_PASSWORD~ are optional.
 - New configuration files leave ~MEO_DEVICES~ empty; set at least one device before ~make enable~.  ~make install~ warns while it is empty (not when staging with ~DESTDIR~).  Empty or unset result in exit status 2 (missing ~DEVICE~ arguments).  Unknown device produces exit status 1.
 - ~make enable~ reloads the scope's systemd manager and enables the timer: first run 2 min after boot, then every 5 min.
 

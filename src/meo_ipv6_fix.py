@@ -6,7 +6,8 @@ not know the device's IPv6 address, breaking access from the Internet. Log in to
 router's web UI and restore IPv6 for the given devices, printing changes to stdout and
 reporting failures on stderr.
 
-Run ``meo-ipv6-fix [--dry-run] [--url URL] [--user USER] DEVICE...``.
+Run ``meo-ipv6-fix [--dry-run] [--url URL] [--user USER] DEVICE...``, giving each DEVICE
+by the name the router lists or by its colon-separated MAC address.
 
 Read defaults from MEO_URL, MEO_USER, and MEO_PASSWORD. Return status 0 on success and 1
 if the router fails or cannot be reached. Only the Python standard library is used.
@@ -48,6 +49,8 @@ IPV6 = "41"
 
 EDIT_RE = re.compile(rf"submitForm\(document\.{FORM},{ACT_EDIT},\d+,'([^']*)'")
 DEVICE_LINK_RE = re.compile(rf"GoAndRemember\('{DEVICE_PATH}','([^']*)'")
+# Only the colon-separated form: hyphenated MAC addresses are valid hostnames too.
+MAC_RE = re.compile(r"[0-9a-f]{2}(?::[0-9a-f]{2}){5}", re.IGNORECASE)
 
 
 class RouterError(Exception):
@@ -71,6 +74,12 @@ class Rule:
     def signature(self) -> tuple[str, str, str, str]:
         """Return the identity preserved when edits change the rule's id."""
         return (self.game, self.device, self.protocol, self.ports)
+
+    @property
+    def mac(self) -> str | None:
+        """Return the device's MAC address from its page link, if there is one."""
+        key = urllib.parse.parse_qs(self.device_args or "").get("key", [""])[0].lower()
+        return key if MAC_RE.fullmatch(key) else None
 
     def __str__(self) -> str:
         """Return the application's name, protocol, and ports for display."""
@@ -345,11 +354,18 @@ class Session:
         return self._logged_in(self._request(path, fields))
 
 
+def _belongs_to(rule: Rule, device: str) -> bool:
+    # Hostnames cannot contain colons, so a MAC address is never a device name.
+    if MAC_RE.fullmatch(device):
+        return rule.mac == device.lower()
+    return rule.device == device
+
+
 def _ipv4_rules(page: str, device: str) -> list[Rule]:
     parse_form(
         page, FORM
     )  # Make sure this is the configuration page, not an error page.
-    rules = [rule for rule in parse_rules(page) if rule.device == device]
+    rules = [rule for rule in parse_rules(page) if _belongs_to(rule, device)]
     if not rules:
         raise RouterError(f"{device}: no sharing rules for this device")
     return [rule for rule in rules if rule.ip_version == "IPv4"]
@@ -419,7 +435,11 @@ def main(argv: list[str] | None = None) -> int:
         "(default: meo).",
     )
     parser.add_argument(
-        "devices", nargs="+", metavar="DEVICE", help="device name, e.g. nas"
+        "devices",
+        nargs="+",
+        metavar="DEVICE",
+        help="device name or colon-separated MAC address, e.g. nas or "
+        "02:00:00:00:00:01",
     )
     parser.add_argument(
         "-n",
