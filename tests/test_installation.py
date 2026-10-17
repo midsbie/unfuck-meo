@@ -54,9 +54,11 @@ class InstallationTest(unittest.TestCase):
         return env
 
     def test_staged_install_preserves_configuration_and_uninstalls(self):
-        variables = ("install_scope=system", "prefix=/opt/meo", "sysconfdir=/etc/meo")
-        result = self.make("install", *variables)
+        env = self.environment_for_uid(0)
+        variables = ("prefix=/opt/meo", "sysconfdir=/etc/meo")
+        result = self.make("install", *variables, env=env)
         self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn("warning:", result.stdout)
         command = self.staging / "opt/meo/bin/meo-ipv6-fix"
         units = self.staging / "opt/meo/lib/systemd/system"
         service = units / "meo-ipv6-fix.service"
@@ -74,11 +76,11 @@ class InstallationTest(unittest.TestCase):
         subprocess.run([str(command), "--help"], check=True, stdout=subprocess.DEVNULL)
 
         config.write_text("MEO_DEVICES=custom\n", encoding="utf-8")
-        result = self.make("install", *variables)
+        result = self.make("install", *variables, env=env)
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertEqual(config.read_text(encoding="utf-8"), "MEO_DEVICES=custom\n")
 
-        result = self.make("uninstall", *variables)
+        result = self.make("uninstall", *variables, env=env)
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertFalse(command.exists())
         self.assertFalse(service.exists())

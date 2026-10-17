@@ -1,7 +1,5 @@
-# Match the effective user, including root when invoked through sudo.
-install_scope ?= $(if $(filter 0,$(shell id -u)),system,user)
-
-ifeq ($(install_scope),system)
+# Match the effective user, including root when invoked through sudo or fakeroot.
+ifeq ($(shell id -u),0)
 prefix ?= /usr/local
 sysconfdir ?= /etc
 systemdsystemunitdir ?= $(prefix)/lib/systemd/system
@@ -9,7 +7,7 @@ unitdir = $(systemdsystemunitdir)
 configfile = $(sysconfdir)/default/meo-ipv6-fix
 service_template = systemd/meo-ipv6-fix.service.in
 SYSTEMCTL_FLAGS ?=
-else ifeq ($(install_scope),user)
+else
 prefix ?= $(HOME)/.local
 sysconfdir ?= $(or $(XDG_CONFIG_HOME),$(HOME)/.config)
 systemduserunitdir ?= $(sysconfdir)/systemd/user
@@ -17,8 +15,6 @@ unitdir = $(systemduserunitdir)
 configfile = $(sysconfdir)/meo-ipv6-fix.env
 service_template = systemd/meo-ipv6-fix-user.service.in
 SYSTEMCTL_FLAGS ?= --user
-else
-$(error install_scope must be system or user)
 endif
 
 exec_prefix ?= $(prefix)
