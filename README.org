@@ -1,0 +1,134 @@
+#+title: meo-ipv6-fix
+
+Restores IPv6 *Game & Application Sharing* rules on a MEO (Technicolor) MediaAccess TG789vac v2 router.
+
+* Problem
+
+IPv6 sharing rules revert to IPv4 over time, breaking inbound access to a LAN device's services.  The sharing page hints at the cause:
+
+#+begin_quote
+If the device has no IPv6 it will assign the corresponding IPv4 for the game or application
+#+end_quote
+
+Probable mechanism: the firmware re-evaluates rules on some event (reboot, device entry expiry, ...), downgrades a rule if the device's IPv6 address is unknown at that moment, and never upgrades it back.
+
+* Usage
+
+~meo-ipv6-fix DEVICE...~ logs in to the web UI and applies the manual fix to each IPv4 rule of each ~DEVICE~ (a device name as the router lists it): /Edit/, set /IP Version/ to IPv6, /Apply/. The router recreates the rule as IPv6 under a new id.
+
+Behaviour:
+
+- Output :: one line per changed rule; none if nothing changes.
+- Preconditions :: the router lists a global IPv6 address for the device (otherwise it recreates the rule as IPv4); the edit form targets that rule with the device selected.
+- Verification :: every change is re-checked.
+- Errors :: stderr, exit status 1.
+
+#+begin_example
+$ meo-ipv6-fix --dry-run nas
+nas: Deluge (UDP 59601 - 59601): IPv4 -> IPv6 (dry run)
+$ meo-ipv6-fix nas
+nas: Deluge (UDP 59601 - 59601): IPv4 -> IPv6
+$ meo-ipv6-fix nas
+$
+#+end_example
+
+Router access; options override the environment:
+
+| Setting  | Default                | Environment    | Option   |
+|----------+------------------------+----------------+----------|
+| URL      | =http://192.168.1.254= | ~MEO_URL~      | ~--url~  |
+| User     | =meo=                  | ~MEO_USER~     | ~--user~ |
+| Password | =meo=                  | ~MEO_PASSWORD~ |          |
+
+Requires Python 3.11+; standard library only.
+
+* Installation
+
+From this checkout, with [[https://docs.astral.sh/uv/][uv]]:
+
+#+begin_src sh
+uv tool install .
+#+end_src
+
+** Periodic execution with systemd
+
+Scope follows the effective user. ~prefix=...~ overrides the scope's default prefix. User paths follow ~XDG_CONFIG_HOME~ when set.
+
+|               | User scope                   | System scope                     |
+|---------------+------------------------------+----------------------------------|
+| Invocation    | ~make install~               | ~sudo make install~              |
+| Command       | =~/.local/bin/meo-ipv6-fix=  | =/usr/local/bin/meo-ipv6-fix=    |
+| Units         | =~/.config/systemd/user/=    | =/usr/local/lib/systemd/system/= |
+| Configuration | =~/.config/meo-ipv6-fix.env= | =/etc/default/meo-ipv6-fix=      |
+| Manager       | ~systemctl --user~           | ~systemctl~                      |
+
+User scope:
+
+#+begin_src sh
+make install
+$EDITOR ~/.config/meo-ipv6-fix.env  # set MEO_DEVICES; credentials optional
+make enable
+#+end_src
+
+The user service runs as the invoking user. Its timer survives logout only with lingering: ~loginctl enable-linger~.
+
+System scope, for an always-on Linux host:
+
+#+begin_src sh
+sudo make install
+sudoedit /etc/default/meo-ipv6-fix
+sudo make enable
+#+end_src
+
+- ~make install~ copies files only: no systemd contact, timer left inactive, existing configuration preserved.
+- ~MEO_DEVICES~ lists the device names to watch. ~MEO_URL~, ~MEO_USER~ and ~MEO_PASSWORD~ are optional.
+- New configuration files leave ~MEO_DEVICES~ empty; set at least one device before ~make enable~.  ~make install~ warns while it is empty (not when staging with ~DESTDIR~).  Empty or unset result in exit status 2 (missing ~DEVICE~ arguments).  Unknown device produces exit status 1.
+- ~make enable~ reloads the scope's systemd manager and enables the timer: first run 2 min after boot, then every 5 min.
+
+Changes and problems are logged to the journal. User scope: add ~--user~ to both commands.
+
+#+begin_src sh
+journalctl -u meo-ipv6-fix
+systemctl list-timers meo-ipv6-fix.timer
+#+end_src
+
+Removal preserves configuration. User scope: drop ~sudo~, use ~systemctl --user daemon-reload~.
+
+#+begin_src sh
+sudo make disable
+sudo make uninstall
+sudo systemctl daemon-reload
+#+end_src
+
+Use *one scope* throughout installation, activation and removal.
+
+* Development
+
+Requires Python 3.11+ and uv 0.11.7+.
+
+#+begin_src sh
+uv sync --locked
+make check
+#+end_src
+
+| Target       | Action                                                            |
+|--------------+-------------------------------------------------------------------|
+| ~make check~ | ~lint~ and ~test~                                                 |
+| ~make test~  | Unit and staged-install tests; implicit text encodings are errors |
+| ~make lint~  | Ruff lint, PEP 257 docstring checks, formatting check             |
+| ~make fmt~   | Apply formatting                                                  |
+| ~make build~ | Wheel and source archive into =dist/=                             |
+
+* Router protocol
+
+Web UI behaviour this tool relies on:
+
+- Login :: ~POST /login.lp~ with ~user~, the form's ~rn~, and ~hidepw~: an HTTP-digest-like hash of the password, computed from the ~realm~ and ~nonce~ embedded in the login page.
+- Rules :: form ~ServiceCfg~ on ~/cgi/b/games/cfg/?be=0&l0=3&l1=4~. Buttons post the form back to the same URL: field ~0~ is the action, ~1~ the key, ~2~ the page's one-time token.
+  - /Edit/: action 21, key = rule id.
+  - /Apply/ (edit form): action 10; field ~39~ = IP version (~4~ IPv4, ~41~ IPv6).
+- Device page :: linked from the rules table; shows the device's IPv6 address.
+
+* License
+
+MIT; see [[file:LICENSE][LICENSE]].
