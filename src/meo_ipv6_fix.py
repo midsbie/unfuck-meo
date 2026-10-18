@@ -427,26 +427,27 @@ def restore_ipv6(session: Session, device: str, dry_run: bool = False) -> int:
     return len(done)
 
 
-def canary_answers(url: str, timeout: float = TIMEOUT) -> bool:
-    """Return whether the URL answers with a 2xx status within the timeout.
+def canary_error(url: str, timeout: float = TIMEOUT) -> str | None:
+    """Return why the URL fails to answer 2xx within the timeout, or None.
 
     The request identifies itself as this tool: Cloudflare blocks Python's
     default User-Agent.
     """
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return 200 <= response.status < 300
-    except OSError:
-        return False
+        # urlopen follows redirects and raises HTTPError for any final non-2xx status.
+        with urllib.request.urlopen(request, timeout=timeout):
+            return None
+    except OSError as e:
+        return str(e)
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run the CLI, reading sys.argv when argv is None.
 
-    Print changes to stdout and failures to stderr. Return 0 on success or
-    1 if the router fails or cannot be reached; argparse handles help and
-    invalid arguments.
+    Print changes and failed canaries to stdout, failures to stderr. Return 0
+    on success or 1 if the router fails or cannot be reached; argparse handles
+    help and invalid arguments.
     """
     parser = argparse.ArgumentParser(
         description="Switch the router's IPv4 Game & Application Sharing rules of the "
@@ -486,8 +487,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if args.canary and canary_answers(args.canary):
-        return 0
+    if args.canary:
+        error = canary_error(args.canary)
+        if error is None:
+            return 0
+        print(f"canary failed: {error}; checking the router")
 
     session = Session(args.url, args.user, os.environ.get("MEO_PASSWORD", "meo"))
     failed = False

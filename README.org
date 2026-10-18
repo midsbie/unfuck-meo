@@ -37,7 +37,7 @@ A ~DEVICE~ is either:
 
 Behaviour:
 
-- Output :: one line per changed rule; none if nothing changes.
+- Output :: one line per changed rule, and one per failed canary; none if nothing changes.
 - Preconditions :: the router lists a global IPv6 address for the device (otherwise it recreates the rule as IPv4); the edit form targets that rule with the device selected.
 - Verification :: every change is re-checked.
 - Errors :: stderr, exit status 1.  A failed logout is a warning on stderr instead, since the rules are already fixed.
@@ -62,13 +62,20 @@ Router access; options override the environment:
 
 *** Canary
 
-Logging in every few minutes loads the router's web server, which has been seen to stop answering after hours of it. A canary limits logins to when a rule has actually reverted: a URL reachable from the Internet only through the rules. While it answers 2xx the rules work and the router is left alone; on any other outcome (error status, timeout, DNS failure) the run proceeds as usual.
+Logging in every few minutes loads the router's web server, which has been seen to stop answering after hours of it. A canary limits logins to when a rule has actually reverted: a URL reachable from the Internet only through the rules. While it answers 2xx the rules work and the router is left alone, silently; on any other outcome (error status, timeout, DNS failure) the run prints why and proceeds as usual.  With a canary set, every login to the router is thus preceded by a =canary failed= line.
+
+#+begin_example
+$ meo-ipv6-fix --canary https://cloud.example.com/ nas
+$ meo-ipv6-fix --canary https://cloud.example.com/ nas
+canary failed: <urlopen error timed out>; checking the router
+nas: HTTPS Server (TCP 443 - 443): IPv4 -> IPv6
+#+end_example
 
 A Cloudflare-proxied name whose only origin record is the device's IPv6 address works from inside the LAN: the request goes out to Cloudflare and comes back in through the router's WAN side. Two conditions:
 
 - Origin record :: AAAA only.  With an A record as well, Cloudflare reaches the device over IPv4 and the canary answers while IPv6 is broken.
 - Cache :: the URL must be served by the origin, not from a cache, or the canary answers while the origin is unreachable.
-- Bot protection :: the request identifies itself with the User-Agent ~meo-ipv6-fix~, which Cloudflare lets through where it blocks Python's default one.
+- Bot protection :: the request identifies itself with the User-Agent ~unfuck-meo~, which Cloudflare lets through where it blocks Python's default one.
 
 Requires Python 3.11+; standard library only.
 

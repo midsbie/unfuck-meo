@@ -342,35 +342,37 @@ class MainTest(unittest.TestCase):
             with (
                 self.subTest(argv=argv, environ=environ),
                 mock.patch.dict(os.environ, environ),
-                mock.patch.object(m, "canary_answers", return_value=True) as canary,
+                mock.patch.object(m, "canary_error", return_value=None) as canary,
                 mock.patch.object(m, "Session") as session,
             ):
                 self.assertEqual(m.main(argv), 0)
                 canary.assert_called_once_with(CANARY)
                 session.assert_not_called()
 
-    def test_silent_canary_checks_the_router(self):
+    def test_failed_canary_is_reported_and_checks_the_router(self):
         session = FakeSession([capture("cfg_all_ipv6.html")])
-        with mock.patch.object(m, "canary_answers", return_value=False):
-            self.assertEqual(self.main(session, "--canary", CANARY, "nas"), (0, "", ""))
+        reason = "HTTP Error 522: Origin Connection Time-out"
+        with mock.patch.object(m, "canary_error", return_value=reason):
+            self.assertEqual(
+                self.main(session, "--canary", CANARY, "nas"),
+                (0, f"canary failed: {reason}; checking the router\n", ""),
+            )
         self.assertTrue(session.logged_out)
 
 
 class CanaryTest(unittest.TestCase):
-    def test_2xx_answers(self):
-        response = mock.MagicMock()
-        response.__enter__.return_value.status = 200
+    def test_answer(self):
         with mock.patch.object(
-            urllib.request, "urlopen", return_value=response
+            urllib.request, "urlopen", return_value=mock.MagicMock()
         ) as urlopen:
-            self.assertTrue(m.canary_answers(CANARY))
+            self.assertIsNone(m.canary_error(CANARY))
         (request,), kwargs = urlopen.call_args
         self.assertEqual(
             (request.full_url, request.get_header("User-agent")), (CANARY, m.USER_AGENT)
         )
         self.assertEqual(kwargs, {"timeout": m.TIMEOUT})
 
-    def test_errors_do_not_answer(self):
+    def test_errors_are_the_reason(self):
         errors = (
             urllib.error.HTTPError(CANARY, 522, "Origin Connection Time-out", {}, None),
             urllib.error.URLError("Name or service not known"),
@@ -381,7 +383,7 @@ class CanaryTest(unittest.TestCase):
                 self.subTest(error=error),
                 mock.patch.object(urllib.request, "urlopen", side_effect=error),
             ):
-                self.assertFalse(m.canary_answers(CANARY))
+                self.assertEqual(m.canary_error(CANARY), str(error))
 
 
 if __name__ == "__main__":
