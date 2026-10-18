@@ -15,6 +15,8 @@ import io
 import ipaddress
 import os
 import pathlib
+import tempfile
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -27,10 +29,20 @@ NAS_MAC = "02:00:00:00:00:01"
 NAS_ARGS = f"key={NAS_MAC}&name=nas"
 NAS_IPV6 = ipaddress.IPv6Address("2001:8a0:0:1:0:ff:fe00:1")
 CANARY = "https://canary.example/"
+CANARY_ERROR = "HTTP Error 522: Origin Connection Time-out"
+CHECKING = f"canary failed: {CANARY_ERROR}; checking the router\n"
 
 
 def capture(name: str) -> str:
     return (CAPTURES / name).read_text(encoding="utf-8")
+
+
+def write_stamp(path, age):
+    """Create or update the file with a modification time age seconds ago; return it."""
+    mtime = time.time() - age
+    path.touch()
+    os.utime(path, (mtime, mtime))
+    return path.stat().st_mtime
 
 
 def replace(page: str, old: str, new: str) -> str:
@@ -49,10 +61,12 @@ class FakeSession:
         self.device_page = device_page
         self.posts = []
         self.logged_out = False
+        self.login_error = None  # raised by login() when set
         self.logout_error = None  # raised by logout() when set
 
     def login(self):
-        pass
+        if self.login_error:
+            raise self.login_error
 
     def logout(self):
         self.logged_out = True
@@ -293,15 +307,34 @@ class RestoreIpv6Test(unittest.TestCase):
 
 
 class MainTest(unittest.TestCase):
+    def setUp(self):
+        # Runs are stateless unless a test gives them a state directory.
+        self.enterContext(mock.patch.dict(os.environ))
+        os.environ.pop("STATE_DIRECTORY", None)
+
+    def state_directory(self):
+        # Set STATE_DIRECTORY to a new directory, as systemd does; return the stamp.
+        state = self.enterContext(tempfile.TemporaryDirectory())
+        os.environ["STATE_DIRECTORY"] = state
+        return pathlib.Path(state, m.LOGIN_STAMP)
+
     def main(self, session, *argv):
+        # Without a session, the router must be left alone.
         out, err = io.StringIO(), io.StringIO()
         with (
-            mock.patch.object(m, "Session", return_value=session),
+            mock.patch.object(m, "Session", return_value=session) as session_class,
             contextlib.redirect_stdout(out),
             contextlib.redirect_stderr(err),
         ):
             status = m.main(list(argv))
+        if session is None:
+            session_class.assert_not_called()
         return status, out.getvalue(), err.getvalue()
+
+    def canary_main(self, error, session=None):
+        # The canary fails with error, or answers if it is None.
+        with mock.patch.object(m, "canary_error", return_value=error):
+            return self.main(session, "--canary", CANARY, "nas")
 
     def test_silent_success(self):
         session = FakeSession([capture("cfg_all_ipv6.html")])
@@ -350,14 +383,86 @@ class MainTest(unittest.TestCase):
                 session.assert_not_called()
 
     def test_failed_canary_is_reported_and_checks_the_router(self):
+        # Without a state directory, every failure checks.
+        for attempt in range(2):
+            with self.subTest(attempt=attempt):
+                session = FakeSession([capture("cfg_all_ipv6.html")])
+                self.assertEqual(
+                    self.canary_main(CANARY_ERROR, session), (0, CHECKING, "")
+                )
+                self.assertTrue(session.logged_out)
+
+    def test_failed_canary_without_stamp_stamps_and_checks_the_router(self):
+        stamp = self.state_directory()
         session = FakeSession([capture("cfg_all_ipv6.html")])
-        reason = "HTTP Error 522: Origin Connection Time-out"
-        with mock.patch.object(m, "canary_error", return_value=reason):
-            self.assertEqual(
-                self.main(session, "--canary", CANARY, "nas"),
-                (0, f"canary failed: {reason}; checking the router\n", ""),
-            )
+        self.assertEqual(self.canary_main(CANARY_ERROR, session), (0, CHECKING, ""))
         self.assertTrue(session.logged_out)
+        self.assertTrue(stamp.exists())
+
+    def test_fresh_stamp_defers_the_router_check(self):
+        stamp = self.state_directory()
+        last = write_stamp(stamp, 60)
+        due = time.strftime("%H:%M", time.localtime(last + m.LOGIN_INTERVAL))
+        self.assertEqual(
+            self.canary_main(CANARY_ERROR),
+            (
+                0,
+                f"canary failed: {CANARY_ERROR}; router check deferred until {due}\n",
+                "",
+            ),
+        )
+        # Deferring leaves the stamp alone, or checks would be deferred forever.
+        self.assertEqual(stamp.stat().st_mtime, last)
+
+    def test_stale_stamp_is_refreshed_and_checks_the_router(self):
+        stamp = self.state_directory()
+        last = write_stamp(stamp, m.LOGIN_INTERVAL + 1)
+        session = FakeSession([capture("cfg_all_ipv6.html")])
+        self.assertEqual(self.canary_main(CANARY_ERROR, session), (0, CHECKING, ""))
+        self.assertTrue(session.logged_out)
+        self.assertGreater(stamp.stat().st_mtime, last + m.LOGIN_INTERVAL)
+
+    def test_stamp_in_the_future_checks_the_router(self):
+        stamp = self.state_directory()
+        write_stamp(stamp, -3600)
+        session = FakeSession([capture("cfg_all_ipv6.html")])
+        self.assertEqual(self.canary_main(CANARY_ERROR, session), (0, CHECKING, ""))
+        self.assertTrue(session.logged_out)
+
+    def test_failed_login_still_counts(self):
+        stamp = self.state_directory()
+        session = FakeSession([capture("cfg_all_ipv6.html")])
+        session.login_error = OSError("timed out")
+        self.assertEqual(
+            self.canary_main(CANARY_ERROR, session),
+            (1, CHECKING, "error: timed out\n"),
+        )
+        self.assertTrue(stamp.exists())
+
+    def test_unusable_state_directory_leaves_the_router_alone(self):
+        # An unrecorded login would lift the spacing, so the run fails instead.
+        state = self.enterContext(tempfile.TemporaryDirectory())
+        os.environ["STATE_DIRECTORY"] = os.path.join(state, "missing")
+        status, out, err = self.canary_main(CANARY_ERROR)
+        self.assertEqual((status, out), (1, ""))
+        self.assertRegex(err, rf"^error: .*{m.LOGIN_STAMP}'\n$")
+
+    def test_answering_canary_removes_the_stamp(self):
+        stamp = self.state_directory()
+        write_stamp(stamp, 60)
+        self.assertEqual(self.canary_main(None), (0, "canary answers again\n", ""))
+        self.assertFalse(stamp.exists())
+
+    def test_answering_canary_without_stamp_is_silent(self):
+        stamp = self.state_directory()
+        self.assertEqual(self.canary_main(None), (0, "", ""))
+        self.assertFalse(stamp.exists())
+
+    def test_answering_canary_ignores_missing_state_directory(self):
+        # No stamp to remove, so nothing needs the directory.
+        state = self.enterContext(tempfile.TemporaryDirectory())
+        os.environ["STATE_DIRECTORY"] = os.path.join(state, "missing")
+        self.assertEqual(self.canary_main(None), (0, "", ""))
 
 
 class CanaryTest(unittest.TestCase):
@@ -373,8 +478,14 @@ class CanaryTest(unittest.TestCase):
         self.assertEqual(kwargs, {"timeout": m.TIMEOUT})
 
     def test_errors_are_the_reason(self):
+        http_error = urllib.error.HTTPError(
+            CANARY, 522, "Origin Connection Time-out", {}, None
+        )
+        # Left open, it is freed by the garbage collector at some later point, whose
+        # ResourceWarning then lands in whichever test is capturing stderr.
+        self.addCleanup(http_error.close)
         errors = (
-            urllib.error.HTTPError(CANARY, 522, "Origin Connection Time-out", {}, None),
+            http_error,
             urllib.error.URLError("Name or service not known"),
             TimeoutError("timed out"),
         )

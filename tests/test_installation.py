@@ -158,6 +158,7 @@ class InstallationTest(unittest.TestCase):
                     f'ExecStart="{prefix}/bin/meo-ipv6-fix" $MEO_DEVICES', text
                 )
                 self.assertIn(f"EnvironmentFile={config}", text)
+                self.assertIn("\nStateDirectory=meo-ipv6-fix\n", text)
                 self.assertEqual("DynamicUser=yes" in text, uid == 0)
                 self.assertEqual("ProtectHome=yes" in text, uid == 0)
                 self.assertNotIn(str(self.staging), text)

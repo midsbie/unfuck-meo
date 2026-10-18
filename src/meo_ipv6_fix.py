@@ -9,10 +9,12 @@ reporting failures on stderr.
 Run ``meo-ipv6-fix [--dry-run] [--url URL] [--user USER] [--canary URL] DEVICE...``,
 giving each DEVICE by the name the router lists or by its colon-separated MAC address.
 A canary is a URL reachable from the Internet only through the rules; while it answers,
-the rules work and the router is left alone.
+the rules work and the router is left alone. While it fails, router logins are spaced at
+least 15 minutes apart if STATE_DIRECTORY names a directory to record them in.
 
 Read defaults from MEO_URL, MEO_USER, MEO_PASSWORD, and MEO_CANARY. Return status 0 on
-success and 1 if the router fails or cannot be reached. Only the Python standard library
+success and 1 if the router fails or cannot be reached or the login stamp in
+STATE_DIRECTORY cannot be read, created, or removed. Only the Python standard library
 is used.
 
 """
@@ -26,14 +28,20 @@ import html.parser
 import http.cookiejar
 import ipaddress
 import os
+import pathlib
 import re
 import sys
+import time
 import urllib.parse
 import urllib.request
 
 DEFAULT_URL = "http://192.168.1.254"
 # Seconds allowed for each HTTP request.
 TIMEOUT = 15
+# Seconds between router logins while the canary fails.
+LOGIN_INTERVAL = 15 * 60
+# File in STATE_DIRECTORY whose modification time is the last such login.
+LOGIN_STAMP = "last-login"
 USER_AGENT = "unfuck-meo"
 MENU_ARGS = "be=0&l0=3&l1=4"
 CFG_URL = f"/cgi/b/games/cfg/?{MENU_ARGS}"
@@ -442,12 +450,54 @@ def canary_error(url: str, timeout: float = TIMEOUT) -> str | None:
         return str(e)
 
 
+def _router_check_due(canary: str) -> bool:
+    """Probe the canary and return whether the router needs checking.
+
+    Print a line when the canary fails, and when it answers after failing. With
+    STATE_DIRECTORY set, the LOGIN_STAMP there spaces checks while the canary fails
+    and is removed once it answers; without it, every failure checks. Raise OSError
+    if the stamp cannot be read, created, or removed; a missing stamp is no error,
+    nor a missing STATE_DIRECTORY while the canary answers.
+    """
+    error = canary_error(canary)
+    state = os.environ.get("STATE_DIRECTORY")
+    stamp = pathlib.Path(state, LOGIN_STAMP) if state else None
+
+    if error is None:
+        if stamp:
+            try:
+                stamp.unlink()
+            except FileNotFoundError:
+                pass
+            else:
+                print("canary answers again")
+        return False
+
+    if stamp:
+        try:
+            last = stamp.stat().st_mtime
+        except FileNotFoundError:
+            last = None
+        # A stamp in the future means the clock stepped back; it defers nothing.
+        if last is not None and last <= time.time() < last + LOGIN_INTERVAL:
+            due = time.strftime("%H:%M", time.localtime(last + LOGIN_INTERVAL))
+            print(f"canary failed: {error}; router check deferred until {due}")
+            return False
+        # Stamped before logging in, so that a login that hangs or fails counts too.
+        stamp.touch()
+
+    print(f"canary failed: {error}; checking the router")
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the CLI, reading sys.argv when argv is None.
 
-    Print changes and failed canaries to stdout, failures to stderr. Return 0
-    on success or 1 if the router fails or cannot be reached; argparse handles
-    help and invalid arguments.
+    Print changes, failed canaries, deferred router checks, and the canary's
+    recovery to stdout, failures to stderr. Return 0 on success, including a
+    deferred check, or 1 if the router fails or cannot be reached or the login
+    stamp cannot be read, created, or removed; argparse handles help and invalid
+    arguments.
     """
     parser = argparse.ArgumentParser(
         description="Switch the router's IPv4 Game & Application Sharing rules of the "
@@ -488,10 +538,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.canary:
-        error = canary_error(args.canary)
-        if error is None:
-            return 0
-        print(f"canary failed: {error}; checking the router")
+        try:
+            if not _router_check_due(args.canary):
+                return 0
+        except OSError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 1
 
     session = Session(args.url, args.user, os.environ.get("MEO_PASSWORD", "meo"))
     failed = False
