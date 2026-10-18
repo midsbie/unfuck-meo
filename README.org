@@ -12,35 +12,37 @@ From this checkout, with [[https://docs.astral.sh/uv/][uv]]:
 uv tool install .
 #+end_src
 
+Python 3.11+; standard library only.
+
 * meo-ipv6-fix
 
-Restores IPv6 *Game & Application Sharing* rules on a MEO (Technicolor) MediaAccess TG789vac v2 router.
+Restores IPv6 *Game & Application Sharing* rules on a MEO (Technicolor) MediaAccess TG789vac v2.
 
 ** Problem
 
-IPv6 sharing rules revert to IPv4 over time, breaking inbound access to a LAN device's services.  The sharing page hints at the cause:
+IPv6 rules revert to IPv4 over time, breaking inbound access to the device.  The sharing page hints at why:
 
 #+begin_quote
 If the device has no IPv6 it will assign the corresponding IPv4 for the game or application
 #+end_quote
 
-Probable mechanism: the firmware re-evaluates rules on some event (reboot, device entry expiry, ...), downgrades a rule if the device's IPv6 address is unknown at that moment, and never upgrades it back.
+Probable mechanism: on some event (reboot, device entry expiry, ...) the firmware re-evaluates rules, downgrades those whose device has no known IPv6 address, and never upgrades them back.
 
 ** Usage
 
-~meo-ipv6-fix DEVICE...~ logs in to the web UI and applies the manual fix to each IPv4 rule of each ~DEVICE~: /Edit/, set /IP Version/ to IPv6, /Apply/. The router recreates the rule as IPv6 under a new id.
+~meo-ipv6-fix DEVICE...~ logs in to the web UI and applies the manual fix to each IPv4 rule of each ~DEVICE~: /Edit/, /IP Version/ to IPv6, /Apply/.  The router recreates the rule as IPv6 under a new id.
 
-A ~DEVICE~ is either:
+~DEVICE~ is one of:
 
 - Name :: as the router lists it, e.g. =nas=.
-- MAC address :: colon-separated, any case, e.g. =02:00:00:00:00:01=; unaffected by the router renaming the device.  Hyphenated MAC addresses are valid hostnames, so they are taken as names.
+- MAC address :: colon-separated, any case, e.g. =02:00:00:00:00:01=; survives the router renaming the device.  Hyphenated MAC addresses are valid hostnames, so taken as names.
 
 Behaviour:
 
-- Output :: one line per changed rule, one per failed canary, saying whether the router is checked or the check deferred, and one when the canary answers again; none if nothing changes.
-- Preconditions :: the router lists a global IPv6 address for the device (otherwise it recreates the rule as IPv4); the edit form targets that rule with the device selected.
+- Preconditions :: the router lists a global IPv6 address for the device, else it recreates the rule as IPv4; the edit form targets that rule with the device selected.
 - Verification :: every change is re-checked.
-- Errors :: stderr, exit status 1.  A failed logout is a warning on stderr instead, since the rules are already fixed.
+- Output :: one line per changed rule, per failed canary (router checked, or check deferred) and per canary recovery; none otherwise.
+- Errors :: stderr, exit status 1.  A failed logout is a warning only: the rules are already fixed.
 
 #+begin_example
 $ meo-ipv6-fix --dry-run nas
@@ -62,7 +64,7 @@ Router access; options override the environment:
 
 *** Canary
 
-Logging in every few minutes loads the router's web server, which has been seen to stop answering after hours of it. A canary, a URL reachable from the Internet only through the rules, limits logins to when one has reverted: while it answers 2xx the router is left alone; on any other outcome (error status, timeout, DNS failure) the run prints why and proceeds as usual.  With a canary set, every login to the router is thus preceded by a =canary failed= line.
+Logging in every few minutes loads the router's web server, seen to stop answering after hours of it.  A canary, a URL reachable from the Internet only through the rules, limits logins to when a rule has reverted: 2xx leaves the router alone; anything else (error status, timeout, DNS failure) prints why and proceeds.  Every router login is thus preceded by a =canary failed= line.
 
 #+begin_example
 $ meo-ipv6-fix --canary https://cloud.example.com/ nas
@@ -71,9 +73,9 @@ canary failed: <urlopen error timed out>; checking the router
 nas: HTTPS Server (TCP 443 - 443): IPv4 -> IPv6
 #+end_example
 
-A proxied DNS entry whose only origin record is the device's IPv6 address works from inside the LAN, since the request goes out to the provider and comes back in through the router's WAN side. The URL must be served by the origin, not a cache, or the canary answers while the device is unreachable. Requests carry the User-Agent =unfuck-meo=, for bot protection to allow.
+A proxied DNS entry whose only origin record is the device's IPv6 address works from inside the LAN: the request goes out to the provider and back in through the WAN side.  The URL must be served by the origin, not a cache, or the canary answers while the device is unreachable.  Requests carry User-Agent =unfuck-meo=, for bot protection to allow.
 
-The canary also fails when the device, the provider or the uplink is down, which no router check fixes. With ~STATE_DIRECTORY~ set, as the units' ~StateDirectory=~ does, logins are then at least 15 min apart: =$STATE_DIRECTORY/last-login= records the last one, deferred runs print when the next is due and exit 0, and the file goes once the canary answers again. An unusable directory is an error that leaves the router alone, since an unrecorded login would lift the spacing. Without ~STATE_DIRECTORY~, as in a manual run, every failure checks the router.
+The canary also fails when the device, provider or uplink is down, which no router check fixes.  With ~STATE_DIRECTORY~ set, as the units' ~StateDirectory=~ does, logins are at least 15 min apart: =$STATE_DIRECTORY/last-login= records the last; a deferred run prints when the next is due and exits 0; the file goes once the canary answers again.  An unusable directory is an error that leaves the router alone, since an unrecorded login would lift the spacing.  Without ~STATE_DIRECTORY~, as in manual runs, every failure checks the router.
 
 #+begin_example
 $ export STATE_DIRECTORY=$(mktemp -d)
@@ -85,11 +87,9 @@ $ meo-ipv6-fix --canary https://cloud.example.com/ nas
 canary answers again
 #+end_example
 
-Requires Python 3.11+; standard library only.
-
 ** Periodic execution with systemd
 
-Scope follows the effective user. ~prefix=...~ overrides the scope's default prefix. User paths follow ~XDG_CONFIG_HOME~ when set; the state directory follows ~XDG_STATE_HOME~.
+Scope follows the effective user; ~prefix=...~ overrides the scope's default prefix.  User paths follow ~XDG_CONFIG_HOME~ and ~XDG_STATE_HOME~ when set.
 
 |               | User scope                     | System scope                     |
 |---------------+--------------------------------+----------------------------------|
@@ -109,9 +109,9 @@ loginctl enable-linger
 make enable
 #+end_src
 
-The user service runs as the invoking user and requires lingering: without it, the user's systemd manager, and with it the timer, runs only while the user is logged in, so not from boot until the first login, nor after the last logout.
+Lingering is required: without it the user's systemd manager, hence the timer, runs only while the user is logged in.
 
-System scope, for an always-on Linux host:
+System scope, for an always-on host:
 
 #+begin_src sh
 sudo make install
@@ -119,19 +119,18 @@ sudoedit /etc/default/meo-ipv6-fix
 sudo make enable
 #+end_src
 
-- ~make install~ copies files only: no systemd contact, timer left inactive, existing configuration preserved.
-- ~MEO_DEVICES~ lists the devices to watch, by name or MAC address. ~MEO_URL~, ~MEO_USER~, ~MEO_PASSWORD~ and ~MEO_CANARY~ are optional.
-- New configuration files leave ~MEO_DEVICES~ empty; set at least one device before ~make enable~.
-- ~make enable~ reloads the scope's systemd manager and enables the timer: first run 2 min after boot, then every 5 min.
+- ~make install~ :: copies files only: no systemd contact, timer inactive, existing configuration preserved.
+- Configuration :: ~MEO_DEVICES~ lists the devices by name or MAC address; empty in new files, so set before ~make enable~.  ~MEO_URL~, ~MEO_USER~, ~MEO_PASSWORD~ and ~MEO_CANARY~ are optional.
+- ~make enable~ :: reloads the scope's systemd manager and enables the timer: first run 2 min after boot, then every 5 min.
 
-Changes and problems are logged to the journal. User scope: add ~--user~ to both commands.
+Changes and problems go to the journal.  User scope: add ~--user~.
 
 #+begin_src sh
 journalctl -u meo-ipv6-fix
 systemctl list-timers meo-ipv6-fix.timer
 #+end_src
 
-Removal preserves configuration. User scope: drop ~sudo~, use ~systemctl --user daemon-reload~.
+Removal preserves configuration.  User scope: drop ~sudo~, use ~systemctl --user daemon-reload~.
 
 #+begin_src sh
 sudo make disable
@@ -139,28 +138,28 @@ sudo make uninstall
 sudo systemctl daemon-reload
 #+end_src
 
-Use *one scope* throughout installation, activation and removal.
+Use one scope throughout.
 
 ** Router protocol
 
-Web UI behaviour this tool relies on:
+Web UI behaviour relied on:
 
-- Login :: ~POST /login.lp~ with ~user~, the form's ~rn~, and ~hidepw~: an HTTP-digest-like hash of the password, computed from the ~realm~ and ~nonce~ embedded in the login page.
-- Rules :: form ~ServiceCfg~ on ~/cgi/b/games/cfg/?be=0&l0=3&l1=4~. Buttons post the form back to the same URL: field ~0~ is the action, ~1~ the key, ~2~ the page's one-time token.
+- Login :: ~POST /login.lp~ with ~user~, the form's ~rn~, and ~hidepw~: an HTTP-digest-like hash of the password from the ~realm~ and ~nonce~ in the login page.
+- Rules :: form ~ServiceCfg~ on ~/cgi/b/games/cfg/?be=0&l0=3&l1=4~.  Buttons post the form back to the same URL: field ~0~ is the action, ~1~ the key, ~2~ the page's one-time token.
   - /Edit/: action 21, key = rule id.
   - /Apply/ (edit form): action 10; field ~39~ = IP version (~4~ IPv4, ~41~ IPv6).
 - Device page :: linked from the rules table; shows the device's IPv6 address.
 
 ** Backlog
 
-- Rule selection :: fix only some of a device's rules (e.g. /HTTPS Server/ but not /Deluge/); today all of them are fixed.  Per-device rule lists outgrow ~MEO_DEVICES~ and call for a configuration file.
-- Verbose mode :: ~-v~ for manual runs, summarising each device (e.g. =nas: 3 rules, all IPv6=); systemd runs stay silent.
-- Devices without rules :: an error today, which catches misspelt devices; could be a warning instead.
+- Rule selection :: fix only some of a device's rules (e.g. /HTTPS Server/ but not /Deluge/); today all are fixed.  Per-device rule lists outgrow ~MEO_DEVICES~ and call for a configuration file.
+- Verbose mode :: ~-v~ for manual runs, one summary per device (e.g. =nas: 3 rules, all IPv6=); systemd runs stay silent.
+- Devices without rules :: an error today, which catches misspelt devices; could be a warning.
 - HTTP timeout :: fixed at 15 s; could be an option.
 
 * Development
 
-Requires Python 3.11+ and uv 0.11.7+.
+uv 0.11.7+.
 
 #+begin_src sh
 uv sync --locked
