@@ -6,18 +6,20 @@ not know the device's IPv6 address, breaking access from the Internet. Log in to
 router's web UI and restore IPv6 for the given devices, printing changes to stdout and
 reporting failures on stderr.
 
-Run ``meo-ipv6-fix [--dry-run] [--url URL] [--user USER] DEVICE...``, giving each DEVICE
-by the name the router lists or by its colon-separated MAC address.
+Run ``meo-ipv6-fix [--dry-run] [--url URL] [--user USER] [--canary URL] DEVICE...``,
+giving each DEVICE by the name the router lists or by its colon-separated MAC address.
+A canary is a URL reachable from the Internet only through the rules; while it answers,
+the rules work and the router is left alone.
 
-Read defaults from MEO_URL, MEO_USER, and MEO_PASSWORD. Return status 0 on success and 1
-if the router fails or cannot be reached. Only the Python standard library is used.
+Read defaults from MEO_URL, MEO_USER, MEO_PASSWORD, and MEO_CANARY. Return status 0 on
+success and 1 if the router fails or cannot be reached. Only the Python standard library
+is used.
 
 """
 
 from __future__ import annotations
 
 import argparse
-import contextlib
 import dataclasses
 import hashlib
 import html.parser
@@ -30,6 +32,9 @@ import urllib.parse
 import urllib.request
 
 DEFAULT_URL = "http://192.168.1.254"
+# Seconds allowed for each HTTP request.
+TIMEOUT = 15
+USER_AGENT = "unfuck-meo"
 MENU_ARGS = "be=0&l0=3&l1=4"
 CFG_URL = f"/cgi/b/games/cfg/?{MENU_ARGS}"
 DEVICE_PATH = "/cgi/b/_dev_/ov/"
@@ -309,7 +314,9 @@ def _md5(s: str) -> str:
 class Session:
     """A logged-in session with the router's web UI."""
 
-    def __init__(self, url: str, user: str, password: str, timeout: float = 15) -> None:
+    def __init__(
+        self, url: str, user: str, password: str, timeout: float = TIMEOUT
+    ) -> None:
         """Create a cookie-backed session with a request timeout in seconds."""
         self._url = url.rstrip("/")
         self._user = user
@@ -341,9 +348,8 @@ class Session:
         )
 
     def logout(self) -> None:
-        """End the session, ignoring connection errors during cleanup."""
-        with contextlib.suppress(OSError):
-            self._request("/logout.lp")
+        """End the session, raising OSError if the router cannot be reached."""
+        self._request("/logout.lp")
 
     def get(self, path: str) -> str:
         """Fetch a page, raising RouterError if the session has expired."""
@@ -421,6 +427,20 @@ def restore_ipv6(session: Session, device: str, dry_run: bool = False) -> int:
     return len(done)
 
 
+def canary_answers(url: str, timeout: float = TIMEOUT) -> bool:
+    """Return whether the URL answers with a 2xx status within the timeout.
+
+    The request identifies itself as this tool: Cloudflare blocks Python's
+    default User-Agent.
+    """
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return 200 <= response.status < 300
+    except OSError:
+        return False
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the CLI, reading sys.argv when argv is None.
 
@@ -457,7 +477,17 @@ def main(argv: list[str] | None = None) -> int:
         default=os.environ.get("MEO_USER", "meo"),
         help="router user (env MEO_USER, default: %(default)s)",
     )
+    parser.add_argument(
+        "--canary",
+        default=os.environ.get("MEO_CANARY"),
+        metavar="URL",
+        help="URL reachable only through the rules: leave the router alone while it "
+        "answers 2xx (env MEO_CANARY)",
+    )
     args = parser.parse_args(argv)
+
+    if args.canary and canary_answers(args.canary):
+        return 0
 
     session = Session(args.url, args.user, os.environ.get("MEO_PASSWORD", "meo"))
     failed = False
@@ -471,7 +501,10 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"error: {e}", file=sys.stderr)
                     failed = True
         finally:
-            session.logout()
+            try:
+                session.logout()
+            except OSError as e:
+                print(f"warning: logout failed: {e}", file=sys.stderr)
     except (RouterError, OSError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

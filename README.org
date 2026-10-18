@@ -40,7 +40,7 @@ Behaviour:
 - Output :: one line per changed rule; none if nothing changes.
 - Preconditions :: the router lists a global IPv6 address for the device (otherwise it recreates the rule as IPv4); the edit form targets that rule with the device selected.
 - Verification :: every change is re-checked.
-- Errors :: stderr, exit status 1.
+- Errors :: stderr, exit status 1.  A failed logout is a warning on stderr instead, since the rules are already fixed.
 
 #+begin_example
 $ meo-ipv6-fix --dry-run nas
@@ -53,11 +53,22 @@ $
 
 Router access; options override the environment:
 
-| Setting  | Default                | Environment    | Option   |
-|----------+------------------------+----------------+----------|
-| URL      | =http://192.168.1.254= | ~MEO_URL~      | ~--url~  |
-| User     | =meo=                  | ~MEO_USER~     | ~--user~ |
-| Password | =meo=                  | ~MEO_PASSWORD~ |          |
+| Setting  | Default                | Environment    | Option     |
+|----------+------------------------+----------------+------------|
+| URL      | =http://192.168.1.254= | ~MEO_URL~      | ~--url~    |
+| User     | =meo=                  | ~MEO_USER~     | ~--user~   |
+| Password | =meo=                  | ~MEO_PASSWORD~ |            |
+| Canary   | none                   | ~MEO_CANARY~   | ~--canary~ |
+
+*** Canary
+
+Logging in every few minutes loads the router's web server, which has been seen to stop answering after hours of it. A canary limits logins to when a rule has actually reverted: a URL reachable from the Internet only through the rules. While it answers 2xx the rules work and the router is left alone; on any other outcome (error status, timeout, DNS failure) the run proceeds as usual.
+
+A Cloudflare-proxied name whose only origin record is the device's IPv6 address works from inside the LAN: the request goes out to Cloudflare and comes back in through the router's WAN side. Two conditions:
+
+- Origin record :: AAAA only.  With an A record as well, Cloudflare reaches the device over IPv4 and the canary answers while IPv6 is broken.
+- Cache :: the URL must be served by the origin, not from a cache, or the canary answers while the origin is unreachable.
+- Bot protection :: the request identifies itself with the User-Agent ~meo-ipv6-fix~, which Cloudflare lets through where it blocks Python's default one.
 
 Requires Python 3.11+; standard library only.
 
@@ -92,7 +103,7 @@ sudo make enable
 #+end_src
 
 - ~make install~ copies files only: no systemd contact, timer left inactive, existing configuration preserved.
-- ~MEO_DEVICES~ lists the devices to watch, by name or MAC address. ~MEO_URL~, ~MEO_USER~ and ~MEO_PASSWORD~ are optional.
+- ~MEO_DEVICES~ lists the devices to watch, by name or MAC address. ~MEO_URL~, ~MEO_USER~, ~MEO_PASSWORD~ and ~MEO_CANARY~ are optional.
 - New configuration files leave ~MEO_DEVICES~ empty; set at least one device before ~make enable~.
 - ~make enable~ reloads the scope's systemd manager and enables the timer: first run 2 min after boot, then every 5 min.
 

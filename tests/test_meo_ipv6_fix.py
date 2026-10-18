@@ -13,8 +13,11 @@ import contextlib
 import dataclasses
 import io
 import ipaddress
+import os
 import pathlib
 import unittest
+import urllib.error
+import urllib.request
 from unittest import mock
 
 import meo_ipv6_fix as m
@@ -23,6 +26,7 @@ CAPTURES = pathlib.Path(__file__).parent / "captures"
 NAS_MAC = "02:00:00:00:00:01"
 NAS_ARGS = f"key={NAS_MAC}&name=nas"
 NAS_IPV6 = ipaddress.IPv6Address("2001:8a0:0:1:0:ff:fe00:1")
+CANARY = "https://canary.example/"
 
 
 def capture(name: str) -> str:
@@ -45,12 +49,15 @@ class FakeSession:
         self.device_page = device_page
         self.posts = []
         self.logged_out = False
+        self.logout_error = None  # raised by logout() when set
 
     def login(self):
         pass
 
     def logout(self):
         self.logged_out = True
+        if self.logout_error:
+            raise self.logout_error
 
     def get(self, path):
         if path == m.CFG_URL:
@@ -319,6 +326,62 @@ class MainTest(unittest.TestCase):
         self.assertEqual((status, out), (1, ""))
         self.assertEqual(err, "error: nsa: no sharing rules for this device\n")
         self.assertTrue(session.logged_out)
+
+    def test_failed_logout_is_a_warning(self):
+        session = FakeSession([capture("cfg_all_ipv6.html")])
+        session.logout_error = OSError("timed out")
+        self.assertEqual(
+            self.main(session, "nas"), (0, "", "warning: logout failed: timed out\n")
+        )
+
+    def test_answering_canary_leaves_the_router_alone(self):
+        for argv, environ in (
+            (["--canary", CANARY, "nas"], {}),
+            (["nas"], {"MEO_CANARY": CANARY}),
+        ):
+            with (
+                self.subTest(argv=argv, environ=environ),
+                mock.patch.dict(os.environ, environ),
+                mock.patch.object(m, "canary_answers", return_value=True) as canary,
+                mock.patch.object(m, "Session") as session,
+            ):
+                self.assertEqual(m.main(argv), 0)
+                canary.assert_called_once_with(CANARY)
+                session.assert_not_called()
+
+    def test_silent_canary_checks_the_router(self):
+        session = FakeSession([capture("cfg_all_ipv6.html")])
+        with mock.patch.object(m, "canary_answers", return_value=False):
+            self.assertEqual(self.main(session, "--canary", CANARY, "nas"), (0, "", ""))
+        self.assertTrue(session.logged_out)
+
+
+class CanaryTest(unittest.TestCase):
+    def test_2xx_answers(self):
+        response = mock.MagicMock()
+        response.__enter__.return_value.status = 200
+        with mock.patch.object(
+            urllib.request, "urlopen", return_value=response
+        ) as urlopen:
+            self.assertTrue(m.canary_answers(CANARY))
+        (request,), kwargs = urlopen.call_args
+        self.assertEqual(
+            (request.full_url, request.get_header("User-agent")), (CANARY, m.USER_AGENT)
+        )
+        self.assertEqual(kwargs, {"timeout": m.TIMEOUT})
+
+    def test_errors_do_not_answer(self):
+        errors = (
+            urllib.error.HTTPError(CANARY, 522, "Origin Connection Time-out", {}, None),
+            urllib.error.URLError("Name or service not known"),
+            TimeoutError("timed out"),
+        )
+        for error in errors:
+            with (
+                self.subTest(error=error),
+                mock.patch.object(urllib.request, "urlopen", side_effect=error),
+            ):
+                self.assertFalse(m.canary_answers(CANARY))
 
 
 if __name__ == "__main__":
