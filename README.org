@@ -96,10 +96,11 @@ User scope:
 #+begin_src sh
 make install
 $EDITOR ~/.config/meo-ipv6-fix.env  # set MEO_DEVICES; credentials optional
+loginctl enable-linger
 make enable
 #+end_src
 
-The user service runs as the invoking user. Its timer survives logout only with lingering: ~loginctl enable-linger~.
+The user service runs as the invoking user and requires lingering: without it, the user's systemd manager, and with it the timer, runs only while the user is logged in, so not from boot until the first login, nor after the last logout.
 
 System scope, for an always-on Linux host:
 
